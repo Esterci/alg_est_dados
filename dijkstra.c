@@ -15,8 +15,6 @@ typedef struct nos
 {
   struct nos *prev;
   int key;
-  int opens_at;
-  int closes_at;
   int pred;
   int tempo;
   int final;
@@ -44,11 +42,13 @@ void node_insert(grafo **G, grafo *x);
 
 void node_delete(grafo **G, grafo *x);
 
-grafo *allocate_graph(int k, int op, int cls);
+grafo *allocate_graph(int k);
 
 void free_graph(grafo *x);
 
 void print_graph(grafo *g);
+
+void djikstra(grafo **G);
 
 // Codigo principal
 
@@ -66,7 +66,7 @@ int main(void)
   printf("Inserindo nos...\n");
   for (int i = n_nos; i >= 0; i--)
   {
-    node_insert(&head, allocate_graph(i + 1,1,1));
+    node_insert(&head, allocate_graph(i + 1));
     printf("\tNo %d inserido.\n", i + 1);
   };
 
@@ -173,13 +173,36 @@ void node_delete(grafo **G, grafo *x)
     x->next->prev = x->prev;
 }
 
-grafo *allocate_graph(int k, int op, int cls)
+void djikstra(grafo **G)
+{
+  grafo *aux_graph;
+  aresta *aux_adj = (*G)->adjacentes;
+
+  while (aux_adj != NULL)
+  {
+    aux_graph = graph_search((*G), aux_adj->destiny);
+
+    int tempo_chegada = aux_adj->distance + (*G)->tempo;
+
+    if (tempo_chegada < aux_graph->tempo)
+    {
+      aux_graph->tempo = tempo_chegada;
+      aux_graph->pred = (*G)->key;
+    }
+
+    // salvar nó
+
+    aux_adj = aux_adj->next;
+  }
+
+  // checar nó de menor peso
+}
+
+grafo *allocate_graph(int k)
 {
   grafo *x = (grafo *)malloc(sizeof(struct nos));
   x->prev = NULL;
   x->key = k;
-  x->opens_at = op;
-  x->closes_at = cls;
   x->pred = -1;
   x->tempo = 2147483647; // maxima representacao de um inteiro apox. infinito
   x->final = 0;
