@@ -28,8 +28,6 @@ void aresta_insert(aresta **L, aresta *x);
 
 void aresta_delete(aresta **L, aresta *x);
 
-aresta *aresta_search(aresta *L, int k);
-
 void print_aresta(aresta *L);
 
 aresta *allocate_aresta(int dny, int dist);
@@ -144,14 +142,6 @@ void aresta_delete(aresta **L, aresta *x)
     *L = x->next;
   if (x->next != NULL)
     x->next->prev = x->prev;
-}
-
-aresta *aresta_search(aresta *L, int k)
-{
-  aresta *x = L;
-  while (x != NULL && x->destiny != k)
-    x = x->next;
-  return x;
 }
 
 void print_aresta(aresta *L)
