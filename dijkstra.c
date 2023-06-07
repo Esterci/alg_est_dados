@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_SIZE 100
+
 // Declarando as estruturas e funções
 
 typedef struct lista_duplamente_encadeada
@@ -53,65 +55,82 @@ void print_fastest_way(grafo *g, int chegada, int partida);
 
 void print_format_time(int t);
 
+int conv_str_to_minutes(char *t);
+
 // Codigo principal
 
 int main(void)
 {
-  int n_nos = 6;
-  int n_arestas = 8;
-  int no_origem = 1;
-  int no_final = 6;
-  int tempo_inicial = 7 * 60 + 30;
+  FILE *arquivo;
+  int i = 0;
+  int i_n, i_a, j;
+
+  int n_nos, n_arestas, no_origem, no_final;
+  int tempo_inicial;
+  int chave_no;
+  char tempo1[5];
+  char tempo2[5];
+  int block_start;
+  int block_end;
+  int aresta_start_node;
+  int aresta_end_node;
+  int aresta_weight;
   grafo *head = NULL, *aux = NULL;
   aresta *aux2 = NULL;
 
-  // Declarando nos
+  // Abrindo o arquivo
+  arquivo = fopen("dados.txt", "r");
+  if (arquivo == NULL)
+  {
+    printf("Erro ao abrir o arquivo.\n");
+    return 1;
+  }
 
-  int nos_matrix[7][3] = {
-      {1, 8 * 60, 12 * 60 + 30},
-      {2, 7 * 60, 14 * 60},
-      {3, 14 * 60, 21 * 60},
-      {4, 8 * 60, 10 * 60},
-      {5, 0, 0},
-      {6, 7 * 60, 19 * 60},
-  };
+  fscanf(arquivo, "%d", &n_nos);
+  fscanf(arquivo, "%d", &n_arestas);
+  fscanf(arquivo, "%d", &no_origem);
+  fscanf(arquivo, "%d", &no_final);
+  fscanf(arquivo, "%s", tempo1);
 
-  // Declarando arestas
+  // Convertendo tempo inicial
+  tempo_inicial = conv_str_to_minutes(tempo1);
 
-  int aresta_matrix[13][3] = {
-      {1, 2, 5},
-      {1, 3, 15},
-      {2, 4, 5},
-      {2, 5, 5},
-      {3, 4, 5},
-      {3, 5, 5},
-      {4, 6, 15},
-      {5, 6, 5},
-  };
-
-  // Inserindo nos no grafo
+  // Lendo os dados dos nos no arquivo e insere nos no grafo
   printf("Inserindo nos...\n");
-  for (int i = 0; i < n_nos; i++)
+  for (i_n = 0; i_n < n_nos; i_n++)
   {
-    node_insert(&head, allocate_graph(nos_matrix[i][0], nos_matrix[i][1], nos_matrix[i][2]));
-    printf("\tNo %d inserido.\n", i + 1);
-  };
+    fscanf(arquivo, "%d %s %s", &chave_no, tempo1, tempo2);
 
-  // Inserindo arestas no grafo
+    // Convertendo inicio do bloqueio para minutos
+
+    block_start = conv_str_to_minutes(tempo1);
+    block_end = conv_str_to_minutes(tempo2);
+
+    // Criando no
+    node_insert(&head, allocate_graph(chave_no, block_start, block_end));
+    printf("\tNo %d inserido.\n", i + 1);
+  }
+
+  // Lendo os dados das arestas no arquivo e inserindo arestas no grafo
   printf("\n\nInserindo arestas...\n");
-  for (int i = 0; i < n_arestas; i++)
+  for (i_a = 0; i_a < n_arestas; i_a++)
   {
-    aux = graph_search(head, aresta_matrix[i][0]);
+    fscanf(arquivo, "%d %d %d", &aresta_start_node, &aresta_end_node, &aresta_weight);
+
+    aux = graph_search(head, aresta_start_node);
     if (aux != NULL)
     {
-      aresta_insert(&aux->adjacentes, allocate_aresta(aresta_matrix[i][1], aresta_matrix[i][2]));
+      aresta_insert(&aux->adjacentes, allocate_aresta(aresta_end_node, aresta_weight));
       printf("\tAresta %d inserida.\n", i + 1);
     }
     else
     {
       printf("\nNo nao encontrado!\n");
     }
-  };
+  }
+
+  // Fechando o arquivo
+  fclose(arquivo);
 
   // aplicando algoritmo de djikstra
 
@@ -123,7 +142,7 @@ int main(void)
   print_graph(head);
 
   printf("\n\nO melhor caminho é:\n");
-  print_fastest_way(head,no_origem,no_final);
+  print_fastest_way(head, no_origem, no_final);
 
   // limpando estruturas
 
@@ -192,7 +211,7 @@ grafo *min_time_graph(grafo *L)
       x = aux;
     }
   }
-  
+
   return x;
 }
 
@@ -250,7 +269,7 @@ void print_graph(grafo *g)
     aresta *auxl = auxg->adjacentes;
     while (auxl != NULL)
     {
-      printf("%i, %d -> ", auxl->destiny,auxl->distance);
+      printf("%i, %d -> ", auxl->destiny, auxl->distance);
       auxl = auxl->next;
     }
     printf("\n");
@@ -315,13 +334,14 @@ void print_fastest_way(grafo *g, int inicio, int final)
   grafo *auxg = g;
   while (auxg != NULL)
   {
-    if (auxg->key == final){
+    if (auxg->key == final)
+    {
       chegada = auxg->tempo;
       printf("No %d\t- Horario de partida: ", auxg->key);
     }
     else
       printf("No %d\t- Horario de chegada: ", auxg->key);
-    if(auxg->key == inicio)
+    if (auxg->key == inicio)
       partida = auxg->tempo;
     print_format_time(auxg->tempo);
     printf("\n\t ^\n");
@@ -330,7 +350,6 @@ void print_fastest_way(grafo *g, int inicio, int final)
     printf("\t |\n");
     auxg = graph_search(g, auxg->pred);
   }
-  printf("\nTempo gasto na viagem: %f hrs", (float)((chegada-partida)/60));
   printf("\n\n");
 }
 
@@ -348,3 +367,23 @@ void print_format_time(int t)
   }
   printf("%d horas e % d minutos", horas, minutos);
 };
+
+int conv_str_to_minutes(char *t)
+{
+  char t_hora[3], t_min[3];
+  int t_vh, t_vm;
+
+  // Dividindo as strings em duas partes iguais
+
+  strncpy(t_hora, t, 2);
+  t_hora[2] = '\0';
+  strncpy(t_min, t + 2, 2);
+  t_min[2] = '\0';
+
+  t_vh = atoi(t_hora);
+  t_vm = atoi(t_min);
+
+  // Convertendo as partes divididas em minutos e as unindo
+
+  return t_vh * 60 + t_vm;
+}
