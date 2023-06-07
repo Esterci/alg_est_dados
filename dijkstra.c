@@ -16,8 +16,8 @@ typedef struct nos
 {
   struct nos *prev;
   int key;
-  int opens_at;
-  int closes_at;
+  int block_start;
+  int block_end;
   int pred;
   int tempo;
   int final;
@@ -31,8 +31,6 @@ void aresta_insert(aresta **L, aresta *x);
 
 void aresta_delete(aresta **L, aresta *x);
 
-void print_aresta(aresta *L);
-
 aresta *allocate_aresta(int dny, int dist);
 
 void free_aresta(aresta *x);
@@ -43,17 +41,15 @@ grafo *min_time_graph(grafo *L);
 
 void node_insert(grafo **G, grafo *x);
 
-void node_delete(grafo **G, grafo *x);
-
 grafo *allocate_graph(int k, int o, int c);
 
 void free_graph(grafo *x);
 
 void print_graph(grafo *g);
 
-void djikstra(grafo **G, grafo *init, int start_time);
+void djikstra(grafo **G, grafo *init, int start_time, int no_final);
 
-void print_fastest_way(grafo *g);
+void print_fastest_way(grafo *g, int chegada, int partida);
 
 void print_format_time(int t);
 
@@ -119,7 +115,7 @@ int main(void)
 
   // aplicando algoritmo de djikstra
 
-  djikstra(&head, graph_search(head, no_origem), tempo_inicial);
+  djikstra(&head, graph_search(head, no_origem), tempo_inicial, no_final);
 
   // Mostrando grafo resultante
 
@@ -127,7 +123,7 @@ int main(void)
   print_graph(head);
 
   printf("\n\nO melhor caminho é:\n");
-  print_fastest_way(head);
+  print_fastest_way(head,no_origem,no_final);
 
   // limpando estruturas
 
@@ -155,17 +151,6 @@ void aresta_delete(aresta **L, aresta *x)
     *L = x->next;
   if (x->next != NULL)
     x->next->prev = x->prev;
-}
-
-void print_aresta(aresta *L)
-{
-  aresta *x = L;
-  while (x != NULL)
-  {
-    printf("%i -> ", x->destiny);
-    x = x->next;
-  }
-  printf("\n");
 }
 
 aresta *allocate_aresta(int dny, int dist)
@@ -197,7 +182,7 @@ grafo *min_time_graph(grafo *L)
 
   int min_time = x->tempo;
 
-  while (aux != NULL && aux->tempo >= min_time)
+  while (aux != NULL)
   {
     aux = aux->next;
 
@@ -207,6 +192,7 @@ grafo *min_time_graph(grafo *L)
       x = aux;
     }
   }
+  
   return x;
 }
 
@@ -219,23 +205,13 @@ void node_insert(grafo **G, grafo *x)
   x->prev = NULL;
 }
 
-void node_delete(grafo **G, grafo *x)
-{
-  if (x->prev != NULL)
-    x->prev->next = x->next;
-  else
-    *G = x->next;
-  if (x->next != NULL)
-    x->next->prev = x->prev;
-}
-
 grafo *allocate_graph(int k, int o, int c)
 {
   grafo *x = (grafo *)malloc(sizeof(struct nos));
   x->prev = NULL;
   x->key = k;
-  x->opens_at = o;
-  x->closes_at = c;
+  x->block_start = o;
+  x->block_end = c;
   x->pred = -1;
   x->tempo = 2147483647; // maxima representacao de um inteiro apox. infinito
   x->final = 0;
@@ -264,9 +240,9 @@ void print_graph(grafo *g)
 
     printf("No: %d\n\t Predecessor: %d", auxg->key, auxg->pred);
     printf("\n\t Horário de entrada: ");
-    print_format_time(auxg->opens_at);
+    print_format_time(auxg->block_start);
     printf("\n\t Horário de entrada: ");
-    print_format_time(auxg->closes_at);
+    print_format_time(auxg->block_end);
     printf("\n\t Tempo ate o no: ");
     print_format_time(auxg->tempo);
     printf("\n\t Arestas: ");
@@ -274,7 +250,7 @@ void print_graph(grafo *g)
     aresta *auxl = auxg->adjacentes;
     while (auxl != NULL)
     {
-      printf("%i -> ", auxl->destiny);
+      printf("%i, %d -> ", auxl->destiny,auxl->distance);
       auxl = auxl->next;
     }
     printf("\n");
@@ -282,12 +258,12 @@ void print_graph(grafo *g)
   }
 }
 
-void djikstra(grafo **G, grafo *init, int start_time)
+void djikstra(grafo **G, grafo *init, int start_time, int no_final)
 {
   grafo *aux_graph = NULL;
   aresta *aux_adj = NULL;
 
-  if (init != NULL && init->final != 1)
+  if (init != NULL && init->key != no_final)
   {
     int tempo_chegada = 0;
     aux_adj = init->adjacentes;
@@ -307,14 +283,17 @@ void djikstra(grafo **G, grafo *init, int start_time)
 
       tempo_chegada = aux_adj->distance * 60 + init->tempo;
 
-      if (aux_graph->closes_at != aux_graph->opens_at)
+      if (aux_graph->block_end != aux_graph->block_start)
       {
-        if (tempo_chegada % (24 * 60) > aux_graph->closes_at)
-          tempo_chegada += 24 * 60 - aux_graph->closes_at + aux_graph->opens_at;
+        if (aux_graph->block_start > aux_graph->block_end)
+        {
+          if (tempo_chegada % (24 * 60) > aux_graph->block_start && tempo_chegada % (24 * 60) < (aux_graph->block_start + 24 * 60))
+            tempo_chegada += aux_graph->block_start + 24 * 60 - tempo_chegada % (24 * 60);
+        }
         else
         {
-          if (tempo_chegada % (24 * 60) < aux_graph->opens_at)
-            tempo_chegada += aux_graph->opens_at - tempo_chegada % (24 * 60);
+          if (tempo_chegada % (24 * 60) > aux_graph->block_start && tempo_chegada % (24 * 60) < aux_graph->block_end)
+            tempo_chegada += aux_graph->block_end - tempo_chegada % (24 * 60);
         }
       }
 
@@ -326,20 +305,24 @@ void djikstra(grafo **G, grafo *init, int start_time)
 
       aux_adj = aux_adj->next;
     }
-    djikstra(G, min_time_graph(*G), start_time);
+    djikstra(G, min_time_graph(*G), start_time, no_final);
   }
 }
 
-void print_fastest_way(grafo *g)
+void print_fastest_way(grafo *g, int inicio, int final)
 {
+  int partida, chegada;
   grafo *auxg = g;
   while (auxg != NULL)
   {
-    if (auxg->pred == -1)
+    if (auxg->key == final){
+      chegada = auxg->tempo;
       printf("No %d\t- Horario de partida: ", auxg->key);
+    }
     else
       printf("No %d\t- Horario de chegada: ", auxg->key);
-
+    if(auxg->key == inicio)
+      partida = auxg->tempo;
     print_format_time(auxg->tempo);
     printf("\n\t ^\n");
     printf("\t/ \\\n");
@@ -347,6 +330,7 @@ void print_fastest_way(grafo *g)
     printf("\t |\n");
     auxg = graph_search(g, auxg->pred);
   }
+  printf("\nTempo gasto na viagem: %f hrs", (float)((chegada-partida)/60));
   printf("\n\n");
 }
 
