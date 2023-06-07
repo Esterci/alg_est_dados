@@ -126,8 +126,8 @@ int main(void)
   printf("\n\nO grafo resultante é:\n");
   print_graph(head);
 
-  // printf("\n\nO melhor caminho é:\n");
-  // print_fastest_way(head);
+  printf("\n\nO melhor caminho é:\n");
+  print_fastest_way(head);
 
   // limpando estruturas
 
@@ -307,6 +307,17 @@ void djikstra(grafo **G, grafo *init, int start_time)
 
       tempo_chegada = aux_adj->distance * 60 + init->tempo;
 
+      if (aux_graph->closes_at != aux_graph->opens_at)
+      {
+        if (tempo_chegada % (24 * 60) > aux_graph->closes_at)
+          tempo_chegada += 24 * 60 - aux_graph->closes_at + aux_graph->opens_at;
+        else
+        {
+          if (tempo_chegada % (24 * 60) < aux_graph->opens_at)
+            tempo_chegada += aux_graph->opens_at - tempo_chegada % (24 * 60);
+        }
+      }
+
       if (tempo_chegada < aux_graph->tempo)
       {
         aux_graph->tempo = tempo_chegada;
@@ -324,8 +335,13 @@ void print_fastest_way(grafo *g)
   grafo *auxg = g;
   while (auxg != NULL)
   {
-    printf("No %d\t- Horario de chegada: %d \n", auxg->key, auxg->tempo);
-    printf("\t ^\n");
+    if (auxg->pred == -1)
+      printf("No %d\t- Horario de partida: ", auxg->key);
+    else
+      printf("No %d\t- Horario de chegada: ", auxg->key);
+
+    print_format_time(auxg->tempo);
+    printf("\n\t ^\n");
     printf("\t/ \\\n");
     printf("\t |\n");
     printf("\t |\n");
