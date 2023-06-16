@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_SIZE 100
-
 // Declarando as estruturas e funções
 
 typedef struct lista_duplamente_encadeada
@@ -300,8 +298,26 @@ void djikstra(grafo **G, grafo *init, int start_time, int no_final)
     {
       aux_graph = graph_search((*G), aux_adj->destiny);
 
+      
       tempo_chegada = aux_adj->distance * 60 + init->tempo;
 
+      // Checar se posso sair da cidade de partida
+      if (init->block_end != init->block_start)
+      {
+        if (init->block_start > init->block_end)
+        {
+          if (init->tempo % (24 * 60) > init->block_start && init->tempo % (24 * 60) < (init->block_start + 24 * 60))
+            tempo_chegada += init->block_start + 24 * 60 - init->tempo % (24 * 60);
+        }
+        else
+        {
+          if (init->tempo % (24 * 60) > init->block_start && init->tempo % (24 * 60) < init->block_end)
+            tempo_chegada += init->block_end - init->tempo % (24 * 60);
+        }
+      }
+
+
+      // Checando horário de saída na chegada
       if (aux_graph->block_end != aux_graph->block_start)
       {
         if (aux_graph->block_start > aux_graph->block_end)
@@ -365,7 +381,7 @@ void print_format_time(int t)
   {
     printf("%d dias, ", dias);
   }
-  printf("%d horas e % d minutos", horas, minutos);
+  printf("%d horas e % d minutos : %d", horas, minutos,t);
 };
 
 int conv_str_to_minutes(char *t)
